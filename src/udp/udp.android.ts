@@ -6,7 +6,7 @@ export class UDPProtocol {
     constructor() {
     }
 
-    public receive(): Observable<string> {
+    public receive(port: number): Observable<string> {
         const subRet: Subject<string> = new Subject();
         let worker: Worker;
         if (global["TNS_WEBPACK"]) {
@@ -15,7 +15,7 @@ export class UDPProtocol {
         } else {
             worker = new Worker("./udp.worker");
         }
-        const data = {action: 'receive'};
+        const data = {action: 'receive', port: port};
         worker.postMessage(data);
         worker.onmessage = function (msg) {
             subRet.next(msg.data.toString());

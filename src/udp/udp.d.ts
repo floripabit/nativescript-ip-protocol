@@ -3,7 +3,7 @@ import 'globals';
 
 export declare class UDPProtocol {
     constructor();
-    receive(): Observable<string>;
+    receive(port: number): Observable<string>;
     sendUnicast(address: string, port: number, msg: string): Observable<string>;
     sendBroadcast(port: number, msg: string): Observable<string>;
 }
