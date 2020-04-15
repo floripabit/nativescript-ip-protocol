@@ -1,7 +1,6 @@
 import "globals";
 const worker: Worker = self as any;
 
-const serverListeningPort = 55000;
 const bufferLength = 65526;
 const successfullMessage = 'Action completed successfully';
 
@@ -14,7 +13,10 @@ worker.onmessage = ((message) => {
 
     switch (message.data.action) {
         case "receive":
-            worker.postMessage(receiveMessage());
+            if (!message.data.port) {
+                throw new Error(`Error: no port defined to receive message`);
+            }
+            worker.postMessage(receiveMessage(message.data.port));
             break;
         case "sendBroadcast":
             if (!message.data.message) {
@@ -96,12 +98,12 @@ function sendBroadcastMessage(port: number, message: string): number {
         }
 }
 
-function receiveMessage(): any {
-    let serverUDPSocket = new java.net.DatagramSocket(serverListeningPort);
+function receiveMessage(port: number): any {
     let buffer = Array.create('byte', bufferLength);
 
     let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
     try {
+        let serverUDPSocket = new java.net.DatagramSocket(port);
         serverUDPSocket.receive(packet);
         let retStr: Array<number> = new Array();
         for (let i = 0; i < packet.getLength(); i++) {
