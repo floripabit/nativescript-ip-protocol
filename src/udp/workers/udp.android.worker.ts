@@ -1,7 +1,7 @@
 import "globals";
+import { UdpWorkerActions } from '../udp.common';
 const worker: Worker = self as any;
 
-const serverListeningPort = 55000;
 const bufferLength = 65526;
 const successfullMessage = 'Action completed successfully';
 
@@ -13,10 +13,13 @@ worker.onmessage = ((message) => {
     }
 
     switch (message.data.action) {
-        case "receive":
-            worker.postMessage(receiveMessage());
+        case UdpWorkerActions.RECEIVE_MESSAGE:
+            if (!message.data.port) {
+                throw new Error(`Error: no port defined to receive message`);
+            }
+            worker.postMessage(receiveMessage(message.data.port));
             break;
-        case "sendBroadcast":
+        case UdpWorkerActions.SEND_BROADCAST_MESSAGE:
             if (!message.data.message) {
                 throw new Error(`Error: no message to send`);
             }
@@ -28,7 +31,7 @@ worker.onmessage = ((message) => {
             }
             worker.postMessage(successfullMessage);
             break;
-        case "sendUnicast":
+        case UdpWorkerActions.SEND_UNICAST_MESSAGE:
             if (!message.data.message) {
                 throw new Error(`Error: no message to send`);
             }
@@ -96,11 +99,18 @@ function sendBroadcastMessage(port: number, message: string): number {
         }
 }
 
-function receiveMessage(): any {
-    let serverUDPSocket = new java.net.DatagramSocket(serverListeningPort);
-    let buffer = Array.create('byte', bufferLength);
+function receiveMessage(port: number): any {
+    let serverUDPSocket: java.net.DatagramSocket;
+    try {
+        serverUDPSocket = new java.net.DatagramSocket(port);
+    }
+    catch (e) {
+        console.error(e);
+        return e;
+    }
+        let buffer = Array.create('byte', bufferLength);
 
-    let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
+        let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
     try {
         serverUDPSocket.receive(packet);
         let retStr: Array<number> = new Array();
@@ -111,6 +121,7 @@ function receiveMessage(): any {
     }
     catch (e) {
         console.error(e);
+        serverUDPSocket.close();
         return e;
     }
 }
