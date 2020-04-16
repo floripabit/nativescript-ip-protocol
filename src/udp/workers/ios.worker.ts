@@ -1,7 +1,7 @@
 import "globals";
+import { UdpWorkerActions } from '../udpUtils';
 const worker: Worker = self as any;
 
-const serverListeningPort = 55000;
 const bufferLength = 65526;
 const successfullMessage = 'Action completed successfully';
 
@@ -13,10 +13,13 @@ worker.onmessage = ((message) => {
     }
 
     switch (message.data.action) {
-        case "receive":
-            worker.postMessage(receiveMessage());
+        case UdpWorkerActions.RECEIVE_MESSAGE:
+            if (!message.data.port) {
+                throw new Error(`Error: no port defined to receive message`);
+            }
+            worker.postMessage(receiveMessage(message.data.port));
             break;
-        case "sendBroadcast":
+        case UdpWorkerActions.SEND_BROADCAST_MESSAGE:
             if (!message.data.message) {
                 throw new Error(`Error: no message to send`);
             }
@@ -28,7 +31,7 @@ worker.onmessage = ((message) => {
             }
             worker.postMessage(successfullMessage);
             break;
-        case "sendUnicast":
+        case UdpWorkerActions.SEND_UNICAST_MESSAGE:
             if (!message.data.message) {
                 throw new Error(`Error: no message to send`);
             }
@@ -46,71 +49,15 @@ worker.onmessage = ((message) => {
 });
 
 function sendUnicastMessage(address: string, port: number, message: string): number {
-        let socket: java.net.DatagramSocket = new java.net.DatagramSocket();
-        let inetAddress: java.net.InetAddress;
-        let buffer = Array.create('byte', message.length);
-        for (let i = 0; i < message.length; i++) {
-            buffer[i] = message.charCodeAt(i);
-        }
-
-        inetAddress = java.net.InetAddress.getByName(address);
-
-        const packet: java.net.DatagramPacket =
-            new java.net.DatagramPacket(buffer, 0, message.length, inetAddress, port);
-
-        try {
-            socket.send(packet);
-            socket.close();
-            return 0;
-        }
-        catch (e) {
-            socket.close();
-            console.error(e);
-            return -1;
-        }
+    
+    //CFSocketCreate()
+    return 0;
 }
 
 function sendBroadcastMessage(port: number, message: string): number {
-        let socket: java.net.DatagramSocket = new java.net.DatagramSocket();
-        let inetAddress: java.net.InetAddress;
-        let buffer = Array.create('byte', message.length);
-        for (let i = 0; i < message.length; i++) {
-            buffer[i] = message.charCodeAt(i);
-        }
-
-        socket.setBroadcast(true);
-        inetAddress = java.net.InetAddress.getByName("255.255.255.255");
-
-        const packet: java.net.DatagramPacket =
-            new java.net.DatagramPacket(buffer, 0, message.length, inetAddress, port);
-
-        try {
-            socket.send(packet);
-            socket.close();
-            return 0;
-        }
-        catch (e) {
-            socket.close();
-            console.error(e);
-            return -1;
-        }
+        return 0;
 }
 
-function receiveMessage(): any {
-    let serverUDPSocket = new java.net.DatagramSocket(serverListeningPort);
-    let buffer = Array.create('byte', bufferLength);
-
-    let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
-    try {
-        serverUDPSocket.receive(packet);
-        let retStr: Array<number> = new Array();
-        for (let i = 0; i < packet.getLength(); i++) {
-            retStr.push(packet.getData()[i]);
-        }
-        return String.fromCharCode(...retStr);
-    }
-    catch (e) {
-        console.error(e);
-        return e;
-    }
+function receiveMessage(port: number): any {
+    return 0;
 }
