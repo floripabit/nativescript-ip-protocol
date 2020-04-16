@@ -1,21 +1,23 @@
+import { UdpCommon, UdpParameters, UdpWorkerActions } from './udp.common';
 import { Observable, Subject } from 'rxjs';
-declare const global, require;
+declare const require;
 
-export class UDPProtocol {
+export class UdpProtocol extends UdpCommon {
 
     constructor() {
+        super();
     }
 
     public receive(port: number): Observable<string> {
         const subRet: Subject<string> = new Subject();
         let worker: Worker;
-        if (global["TNS_WEBPACK"]) {
-            const WorkerScript = require('nativescript-worker-loader!./udp.worker');
+        if (this.usingWebpack) {
+            const WorkerScript = require('nativescript-worker-loader!./workers/udp.android.worker');
             worker = new WorkerScript();
         } else {
-            worker = new Worker("./udp.worker");
+            worker = new Worker("./workers/udp.android.worker");
         }
-        const data = {action: 'receive', port: port};
+        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_MESSAGE, port: port};
         worker.postMessage(data);
         worker.onmessage = function (msg) {
             subRet.next(msg.data.toString());
@@ -29,13 +31,17 @@ export class UDPProtocol {
     public sendUnicast(address: string, port: number, msg: string): Observable<string> {
         const subRet: Subject<string> = new Subject();
         let worker: Worker;
-        if (global["TNS_WEBPACK"]) {
-            const WorkerScript = require('nativescript-worker-loader!./udp.worker');
+        if (this.usingWebpack) {
+            const WorkerScript = require('nativescript-worker-loader!./workers/udp.android.worker');
             worker = new WorkerScript();
         } else {
-            worker = new Worker("./udp.worker");
+            worker = new Worker("./workers/udp.android.worker");
         }
-        const data = {action: 'sendUnicast', address: address, port: port, message: msg};
+        const data: UdpParameters = {
+            action: UdpWorkerActions.SEND_UNICAST_MESSAGE, message: msg,
+            port, address,
+        };
+        // const data = {action: 'sendUnicast', address: address, port: port, message: msg};
         worker.postMessage(data);
         worker.onmessage = function (msg) {
             subRet.next(msg.data.toString());
@@ -49,13 +55,16 @@ export class UDPProtocol {
     public sendBroadcast(port: number, msg: string): Observable<string> {
         const subRet: Subject<string> = new Subject();
         let worker: Worker;
-        if (global["TNS_WEBPACK"]) {
-            const WorkerScript = require('nativescript-worker-loader!./udp.worker');
+        if (this.usingWebpack) {
+            const WorkerScript = require('nativescript-worker-loader!./workers/udp.android.worker');
             worker = new WorkerScript();
         } else {
-            worker = new Worker("./udp.worker");
+            worker = new Worker("./workers/udp.android.worker");
         }
-        const data = {action: 'sendBroadcast', port: port, message: msg};
+        const data: UdpParameters = {
+            action: UdpWorkerActions.SEND_BROADCAST_MESSAGE, message: msg, port
+        };
+        // const data = {action: 'sendBroadcast', port: port, message: msg};
         worker.postMessage(data);
         worker.onmessage = function (msg) {
             subRet.next(msg.data.toString());
