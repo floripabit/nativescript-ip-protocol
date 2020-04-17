@@ -1,1 +1,1 @@
-export { UDPProtocol } from './udp/udp';
+export { UdpProtocol } from './udp/udp';

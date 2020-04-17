@@ -1,50 +1,71 @@
 import { Observable, Subject } from 'rxjs';
-declare const global, require;
+const successfullMessage = 'Action completed successfully';
 
-export class UDPProtocol {
+export class UdpProtocol extends NSObject implements GCDAsyncUdpSocketDelegate {
     private udpServerSubject: Subject<string>;
     private udpClientSubject: Subject<string>;
     private tag: number;
 
     constructor() {
-        this.tag = 0;
+        super();
+    }
+
+    udpSocketDidCloseWithError(sock: GCDAsyncUdpSocket, error: NSError): void {
+        console.log('udpSocketDidCloseWithError callback');
+        this.udpClientSubject.error('Error closing Socket');
+    }
+    udpSocketDidConnectToAddress(sock: GCDAsyncUdpSocket, address: NSData): void {
+        console.log('udpSocketDidConnectToAddress callback');
+        this.udpServerSubject.next(successfullMessage);
+    }
+    udpSocketDidNotConnect(sock: GCDAsyncUdpSocket, error: NSError): void {
+        console.log('udpSocketDidNotConnect callback');
+        this.udpClientSubject.error('Error Socket did not connect');
+    }
+    udpSocketDidNotSendDataWithTagDueToError(sock: GCDAsyncUdpSocket, tag: number, error: NSError): void {
+        console.log('udpSocketDidNotSendDataWithTagDueToError callback');
+        this.udpClientSubject.error('Error Sending data');
+    }
+    udpSocketDidReceiveDataFromAddressWithFilterContext(sock: GCDAsyncUdpSocket, data: NSData, address: NSData, filterContext: any): void {
+        console.log('udpSocketDidReceiveDataFromAddressWithFilterContext callback');
+        const retString: any = NSString.alloc().initWithDataEncoding(data, NSUTF8StringEncoding);
+        this.udpServerSubject.next(<string>retString);
+    }
+    udpSocketDidSendDataWithTag(sock: GCDAsyncUdpSocket, tag: number): void {
+        console.log('udpSocketDidSendDataWithTag callback');
+        this.udpClientSubject.next(successfullMessage);
     }
 
     receive(port: number): Observable<string> {
-        const serverSubscriber: Subject<string> = new Subject();
-        this.udpServerSubject = serverSubscriber;
-        return serverSubscriber;
+        const subServer = new Subject<string>();
+        this.udpServerSubject = subServer;
+        this.udpServerSubject.error('Method not implemented');
+        return this.udpServerSubject;
     }
 
     sendUnicast(address: string, port: number, msg: string): Observable<string> {
-        const subRet: Subject<string> = new Subject();
-        let worker5: Worker;
-        console.log('before worker');
-        if (global["TNS_WEBPACK"]) {
-            console.log('entrei com webpack');
-            const WorkerScript = require('nativescript-worker-loader!./udpIos.worker');
-            worker5 = new WorkerScript();
-        } else {
-            console.log('entrei sem webpack');
-            worker5 = new Worker("./udpIos.worker");
+        const subClient = new Subject<string>();
+        this.udpClientSubject = subClient;
+        try {
+            let dispatchQueue = dispatch_queue_create("sendUnicast_queue", null);
+            let sock = GCDAsyncUdpSocket.alloc()
+                .initWithDelegateDelegateQueue(this, dispatchQueue);
+            let sendData: any = NSString.alloc().initWithCString(msg);
+            sock.sendDataToHostPortWithTimeoutTag(sendData, address, port, -1, this.tag);
+            return this.udpClientSubject;
         }
-        console.log('after create worker');
-        const data = {action: 'sendUnicast', address: address, port: port, message: msg};
-        worker5.postMessage(data);
-        console.log('after post data');
-        worker5.onmessage = function (msg) {
-            console.log('inside 1');
-            subRet.next(msg.data.toString());
-        };
-        worker5.onerror = function (err) {
-            console.log('inside error');
-            subRet.error(err.error.toString());
-        };
-        return subRet;
+        catch (err) {
+            console.error(`caught error ${err}`);
+            this.udpClientSubject.error(`caught error ${err}`);
+            return this.udpClientSubject;
+        }
     }
 
     sendBroadcast(port: number, msg: string): Observable<string> {
-        setTimeout(() => { this.udpClientSubject.next('oi :D passei no sendBroadcast'); }, 100);
+        const subClient = new Subject<string>();
+        this.udpClientSubject = subClient;
+        this.udpClientSubject.error('Method not implemented');
         return this.udpClientSubject;
     }
 }
+

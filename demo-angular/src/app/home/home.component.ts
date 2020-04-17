@@ -1,7 +1,7 @@
 import { Component, OnInit } from "@angular/core";
-import { UDPProtocol } from 'nativescript-ip-protocol';
+import { UdpProtocol } from 'nativescript-ip-protocol';
 
-const serverListeningPort = 55000;
+const defaultPort = 55000;
 
 @Component({
     selector: "Home",
@@ -14,20 +14,18 @@ export class HomeComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        const variable: UDPProtocol = new UDPProtocol();
-        console.log('teste2222');
-        /*variable.receive(serverListeningPort).subscribe((data) => {
-            console.log('teste');
-        });*/
-        console.log('teste normal fora');
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        udpSocket.receive(defaultPort).subscribe((data) => {
+            console.log(JSON.parse(data));
+        });
         const sendJson = { 
-            teste1: 'oi',
-            teste2: 'oi2',
-            odakodkaokda: 'oioioioio'
+            Obj1: 'test1',
+            Obj2: 'test2',
+            Obj3: 'test3'
         }
-        setTimeout(() => {variable.sendUnicast('127.0.0.1', serverListeningPort,
-            JSON.stringify(sendJson)).subscribe((ret) => {
+        setTimeout(() => {udpSocket.sendUnicast('127.0.0.1', defaultPort, JSON.stringify(sendJson))
+        .subscribe((ret) => {
             console.log(ret);
-        })}, 1000);
+        })}, 10000);
     }
 }
