@@ -1,5 +1,5 @@
 import "globals";
-import { UdpWorkerActions } from '../udpUtils';
+import { UdpWorkerActions } from './udp.common';
 const worker: Worker = self as any;
 
 const bufferLength = 65526;
