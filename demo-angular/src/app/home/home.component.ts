@@ -6,25 +6,62 @@ import { UdpProtocol } from 'nativescript-ip-protocol';
     templateUrl: "./home.component.html"
 })
 export class HomeComponent implements OnInit {
+    private messageCount = 0;
+    public port = 55000;
+    public ip = "127.0.0.1";
+    public message = "This is a {N} test";
+    public receivedMessage;
+    public status;
 
     constructor() {
         // Use the component constructor to inject providers.
+        this.message = "This is a {N} test n." + this.messageCount;
+        this.status = "None";
     }
 
-    ngOnInit(): void {
-        const variable: UdpProtocol = new UdpProtocol();
-        variable.receive(55000).subscribe((data) => {
-            console.log(JSON.parse(data));
+    public ngOnInit(): void {
+
+    }
+
+    public startReceiving() {
+    }
+
+    public receiveOnce() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        this.status = "Opening to receive once...";
+        udpSocket.receive(this.port)
+        .subscribe((msg) => {
+            this.status = "Received message";
+            this.cleanStatus();
+            this.receivedMessage = msg;
         });
-        const sendJson = { 
-            teste1: 'oi',
-            teste2: 'oi2',
-            odakodkaokda: 'oioioioio'
-        }
-        setTimeout(() => {variable.sendUnicast('127.0.0.1', 55000, JSON.stringify(sendJson))
-        .subscribe((ret) => {
-            console.log('retorno');
-            console.log(ret);
-        })}, 10000);
+    }
+
+    public sendBroadcast() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        this.status = "Sending Broadcast...";
+        udpSocket.sendBroadcast(this.port, this.message)
+        .subscribe(() => {
+            this.status = "Broadcast message sent";
+            this.messageCount++;
+            this.cleanStatus();
+        });
+    }
+
+    public sendUnicast() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        this.status = "Sending Unicast...";
+        udpSocket.sendUnicast(this.ip, this.port, this.message)
+        .subscribe(() => {
+            this.status = "Unicast message sent";
+            this.messageCount++;
+            this.cleanStatus();
+        });
+    }
+
+    private cleanStatus() {
+        setTimeout(() => {
+            this.status = "None";
+        },1500);
     }
 }
