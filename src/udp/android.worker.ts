@@ -117,6 +117,7 @@ function receiveMessage(port: number): any {
         for (let i = 0; i < packet.getLength(); i++) {
             retStr.push(packet.getData()[i]);
         }
+        serverUDPSocket.close();
         return String.fromCharCode(...retStr);
     }
     catch (e) {
