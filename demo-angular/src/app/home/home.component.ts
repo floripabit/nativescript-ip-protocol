@@ -21,11 +21,12 @@ export class HomeComponent implements OnInit {
         const sendJson = { 
             Obj1: 'test1',
             Obj2: 'test2',
-            Obj3: 'test3'
+            Obj3: 'test3',
+            Obj4: 'test4',
         }
         setTimeout(() => {udpSocket.sendUnicast('127.0.0.1', defaultPort, JSON.stringify(sendJson))
         .subscribe((ret) => {
             console.log(ret);
-        })}, 10000);
+        })}, 1000);
     }
 }

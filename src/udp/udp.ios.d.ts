@@ -1,5 +1,8 @@
 import { Observable } from 'rxjs';
 export declare class UdpProtocol extends NSObject implements GCDAsyncUdpSocketDelegate {
+    static ObjCProtocols: {
+        prototype: GCDAsyncUdpSocketDelegate;
+    }[];
     private udpServerSubject;
     private udpClientSubject;
     private tag;
