@@ -1,5 +1,5 @@
 import "globals";
-import { UdpWorkerActions } from './udp.common';
+import { UdpWorkerActions } from '../udp.common';
 const worker: Worker = self as any;
 
 const bufferLength = 65526;
@@ -112,6 +112,7 @@ function receiveMessage(port: number): any {
 
         let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
     try {
+        let serverUDPSocket = new java.net.DatagramSocket(port);
         serverUDPSocket.receive(packet);
         let retStr: Array<number> = new Array();
         for (let i = 0; i < packet.getLength(); i++) {

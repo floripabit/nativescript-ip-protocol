@@ -25,7 +25,7 @@
 		"demo.ios": "npm i && cd ../demo && tns run ios",
 		"demo.android": "npm i && cd ../demo && tns run android",
 		"demo.reset": "cd ../demo && npx rimraf -- hooks node_modules platforms package-lock.json",
-		"demo-angular.ios": "npm i && cd ../demo-angular && tns run ios",
+		"demo-angular.ios": "npm i && npm run pack && cd ../demo-angular && npm run refreshdemo && tns run ios",
 		"demo-angular.android": "npm i && npm run pack && cd ../demo-angular && npm run refreshdemo && tns run android",
 		"demo-angular.reset": "cd ../demo-angular && npx rimraf --hooks node_modules platforms package-lock.json",
 		"plugin.prepare": "npm run build && cd ../demo && tns plugin remove nativescript-ip-protocol && tns plugin add ../src && cd ../demo-angular && tns plugin remove nativescript-ip-protocol && tns plugin add ../src",

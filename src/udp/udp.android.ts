@@ -10,10 +10,10 @@ export class UdpProtocol extends UdpCommon {
 
     private getWorker(): Worker {
         if (global["TNS_WEBPACK"]) {
-            const WorkerScript = require('nativescript-worker-loader!./android.worker.js');
+            const WorkerScript = require('nativescript-worker-loader!./workers/android.worker.js');
             return new WorkerScript();
         }
-        return new Worker('./android.worker.js');
+        return new Worker('./workers/android.worker.js');
     }
 
     public receive(port: number): Observable<string> {
