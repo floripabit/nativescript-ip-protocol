@@ -26,12 +26,27 @@ export class HomeComponent implements OnInit {
     }
 
     public startReceiving() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        this.status = "Opening to receive many...";
+        udpSocket.startReceive(this.port)
+        .subscribe((msg) => {
+            this.status = "Received message";
+            this.cleanStatus();
+            this.ngZone.run(() => {
+                this.receivedMessage = msg;
+            })
+        });
+    }
+
+    public stopReceiving() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        udpSocket.stopReceive();
     }
 
     public receiveOnce() {
         const udpSocket: UdpProtocol = new UdpProtocol();
         this.status = "Opening to receive once...";
-        udpSocket.receive(this.port)
+        udpSocket.receiveOnce(this.port)
         .subscribe((msg) => {
             this.status = "Received message";
             this.cleanStatus();

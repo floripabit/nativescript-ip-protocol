@@ -6,10 +6,20 @@ export class UdpProtocol extends UdpCommon {
         super();
     }
 
-    public receive(port: number): Observable<string> {
+    public receiveOnce(port: number): Observable<string> {
         const subRet: Subject<string> = new Subject();
-        subRet.error('receive method not implemented for iOS');
+        subRet.error('receiveOnce method not implemented for iOS');
         return subRet;
+    }
+
+    public startReceive(port: number): Observable<string> {
+        const subRet: Subject<string> = new Subject();
+        subRet.error('startReceive method not implemented for iOS');
+        return subRet;
+    }
+
+    stopReceive(): void {
+        return;
     }
 
     public sendUnicast(address: string, port: number, msg: string): Observable<string> {

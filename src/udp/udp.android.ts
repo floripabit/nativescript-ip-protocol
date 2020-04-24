@@ -3,6 +3,7 @@ import { UdpCommon, UdpWorkerActions, UdpParameters } from './udp.common';
 declare const global, require;
 
 export class UdpProtocol extends UdpCommon {
+    public udpServerSocket: java.net.DatagramSocket;
 
     constructor() {
         super();
@@ -16,22 +17,51 @@ export class UdpProtocol extends UdpCommon {
         return new Worker('./android.worker.js');
     }
 
-    public receive(port: number): Observable<string> {
+    public receiveOnce(port: number): Observable<string> {
         const subRet: Subject<string> = new Subject();
         let worker: Worker = this.getWorker();
 
-        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_MESSAGE, port: port};
+        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_ONCE_MESSAGE, port: port};
+        const obj: UdpProtocol = this;
 
         worker.postMessage(data);
 
         worker.onmessage = function (msg) {
-            subRet.next(msg.data.toString());
+            console.log(obj);
+            console.log(msg);
+            console.log(subRet);
+            UdpProtocol.processReceivedMessage(obj, msg.data, subRet);
         };
 
         worker.onerror = function (err) {
             subRet.error(err.error.toString());
         };
         return subRet;
+    }
+
+    public startReceive(port: number): Observable<string> {
+        const subRet: Subject<string> = new Subject();
+        let worker: Worker = this.getWorker();
+
+        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_START_MESSAGE, port: port};
+        const obj: UdpProtocol = this;
+
+        worker.postMessage(data);
+
+        worker.onmessage = function (msg) {
+            UdpProtocol.processReceivedMessage(obj, msg.data, subRet);
+        };
+
+        worker.onerror = function (err) {
+            subRet.error(err.error.toString());
+        };
+        return subRet;
+    }
+
+    public stopReceive(): void {
+        let worker: Worker = this.getWorker();
+        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_STOP_MESSAGE};
+        worker.postMessage(data);
     }
 
     public sendUnicast(address: string, port: number, msg: string): Observable<string> {
@@ -74,4 +104,38 @@ export class UdpProtocol extends UdpCommon {
         };
         return subRet;
     }
+
+    static processReceivedMessage(obj: UdpProtocol,
+                                  msg: UdpAndroidWorkerAnswer,
+                                  subRet: Subject<string>) {
+        console.log(obj);
+        console.log(msg);
+        console.log(subRet);
+        switch (msg.action) {
+            case UdpWorkerActions.RETURN_DATA_MESSAGE:
+                subRet.next(msg.data);
+                break;
+            case UdpWorkerActions.RETURN_SOCKET_MESSAGE:
+                obj.udpServerSocket = msg.socket;
+                break;
+            default:
+                console.error(`Not recognized action: ${msg.action}`);
+                break;
+        }
+        return;
+    }
 }
+
+type UdpAndroidWorkerAnswer = |
+{
+    action: UdpWorkerActions.RETURN_SOCKET_MESSAGE;
+    socket: java.net.DatagramSocket;
+} |
+{
+    action: UdpWorkerActions.RETURN_DATA_MESSAGE;
+    data: any;
+} |
+{
+    action: UdpWorkerActions.RETURN_ERROR_MESSAGE;
+    error: any;
+};
