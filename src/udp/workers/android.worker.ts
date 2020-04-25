@@ -1,5 +1,6 @@
 import "globals";
-import { UdpWorkerActions } from './udp.common';
+import { UdpWorkerActions } from '../udp.common';
+import { UdpAndroidWorkerAnswer } from '../udp.android';
 const worker: Worker = self as any;
 
 const bufferLength = 65526;
@@ -12,25 +13,18 @@ worker.onmessage = ((message) => {
         throw new Error('Error: no action sent to worker');
     }
 
-    let udpServerConstant: java.net.DatagramSocket;
-
     switch (message.data.action) {
         case UdpWorkerActions.RECEIVE_ONCE_MESSAGE:
             if (!message.data.port) {
                 throw new Error(`Error: no port defined to receive message`);
             }
             worker.postMessage(receiveOnceMessage(message.data.port));
-            close();
             break;
         case UdpWorkerActions.RECEIVE_START_MESSAGE:
             if (!message.data.port) {
                 throw new Error(`Error: no port defined to receive message`);
             }
-            udpServerConstant = startReceive(message.data.port);
-            break;
-        case UdpWorkerActions.RECEIVE_STOP_MESSAGE:
-            stopReceive(udpServerConstant);
-            close();
+            startReceiveWithTimeout(message.data.port, message.data.timeout);
             break;
         case UdpWorkerActions.SEND_BROADCAST_MESSAGE:
             if (!message.data.message) {
@@ -43,7 +37,6 @@ worker.onmessage = ((message) => {
                 throw new Error(`Error: Error sending broadcast message`);
             }
             worker.postMessage(successfullMessage);
-            close();
             break;
         case UdpWorkerActions.SEND_UNICAST_MESSAGE:
             if (!message.data.message) {
@@ -56,10 +49,8 @@ worker.onmessage = ((message) => {
                 throw new Error(`Error: Error sending unicast message`);
             }
             worker.postMessage(successfullMessage);
-            close();
             break;
         default:
-            close();
             throw new Error(`Error: ${message.data.action} is not a valid action`);
     }
 });
@@ -73,9 +64,8 @@ function sendUnicastMessage(address: string, port: number, message: string): num
         }
 
         inetAddress = java.net.InetAddress.getByName(address);
-
         const packet: java.net.DatagramPacket =
-            new java.net.DatagramPacket(buffer, 0, message.length, inetAddress, port);
+            new java.net.DatagramPacket(buffer, 0, message.length, inetAddress, Number(port));
 
         try {
             socket.send(packet);
@@ -83,8 +73,10 @@ function sendUnicastMessage(address: string, port: number, message: string): num
             return 0;
         }
         catch (e) {
-            socket.close();
-            console.error(e);
+            if (socket) {
+                socket.close();
+            }
+            console.error(e.message);
             return -1;
         }
 }
@@ -99,9 +91,8 @@ function sendBroadcastMessage(port: number, message: string): number {
 
         socket.setBroadcast(true);
         inetAddress = java.net.InetAddress.getByName("255.255.255.255");
-
         const packet: java.net.DatagramPacket =
-            new java.net.DatagramPacket(buffer, 0, message.length, inetAddress, port);
+            new java.net.DatagramPacket(buffer, 0, message.length, inetAddress, Number(port));
 
         try {
             socket.send(packet);
@@ -109,83 +100,101 @@ function sendBroadcastMessage(port: number, message: string): number {
             return 0;
         }
         catch (e) {
-            socket.close();
-            console.error(e);
+            if (socket) {
+                socket.close();
+            }
+            console.error(e.message);
             return -1;
         }
 }
 
-function receiveOnceMessage(port: number): any {
+function receiveOnceMessage(port: number): UdpAndroidWorkerAnswer {
     let serverUDPSocket: java.net.DatagramSocket;
+    let retMsg: UdpAndroidWorkerAnswer;
+    let buffer = Array.create('byte', bufferLength);
+    let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
     try {
-        serverUDPSocket = new java.net.DatagramSocket(port);
-    }
-    catch (e) {
-        console.error(e);
-        return e;
-    }
-        let buffer = Array.create('byte', bufferLength);
-
-        let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
-    try {
+        serverUDPSocket = new java.net.DatagramSocket(Number(port));
         serverUDPSocket.receive(packet);
         let retStr: Array<number> = new Array();
         for (let i = 0; i < packet.getLength(); i++) {
             retStr.push(packet.getData()[i]);
         }
         serverUDPSocket.close();
-        return String.fromCharCode(...retStr);
+        retMsg = {
+            action: UdpWorkerActions.RETURN_DATA_MESSAGE,
+            data: <any>String.fromCharCode(...retStr)
+        };
+        return retMsg;
     }
     catch (e) {
-        console.error(e);
-        serverUDPSocket.close();
-        return e;
+        console.error(e.message);
+        if (serverUDPSocket) {
+            serverUDPSocket.close();
+        }
+        retMsg = {
+            action: UdpWorkerActions.RETURN_ERROR_MESSAGE,
+            error: e.message
+        };
+        return retMsg;
     }
 }
 
-function startReceive(port: number): java.net.DatagramSocket {
-    let udpServerConstant;
+function startReceiveWithTimeout(port: number, timeout: number): void {
+    let udpServer: java.net.DatagramSocket;
+    let retMsg: UdpAndroidWorkerAnswer;
     try {
-        udpServerConstant = new java.net.DatagramSocket(port);
+        udpServer = new java.net.DatagramSocket(Number(port));
+        udpServer.setSoTimeout(Number(timeout));
     }
     catch (e) {
-        console.error(e);
-        return e;
+        console.error(e.message);
+        retMsg = {
+            action: UdpWorkerActions.RETURN_ERROR_MESSAGE,
+            error: e.message
+        };
+        worker.postMessage(retMsg);
+        return;
     }
     let buffer = Array.create('byte', bufferLength);
     let packet: java.net.DatagramPacket = new java.net.DatagramPacket(buffer, bufferLength);
     try {
         while (1) {
-            udpServerConstant.receive(packet);
+            if (!udpServer) {
+                return;
+            }
+            udpServer.receive(packet);
             let retStr: Array<number> = new Array();
             for (let i = 0; i < packet.getLength(); i++) {
                 retStr.push(packet.getData()[i]);
             }
-            worker.postMessage(String.fromCharCode(...retStr));
+            retMsg = {
+                action: UdpWorkerActions.RETURN_DATA_MESSAGE,
+                data: String.fromCharCode(...retStr)
+            };
+            worker.postMessage(retMsg);
         }
-        return udpServerConstant;
-    }
-    catch (e) {
-        console.error(e);
-        udpServerConstant.close();
-        return null;
-    }
-}
-
-function stopReceive(sock: java.net.DatagramSocket): void {
-    console.log('entering stop');
-    console.log(sock);
-    /*if (!udpServerConstant) {
-        return 0;
-    }*/
-    try {
-        console.log("entering CLOSEE");
-        sock.close();
-        console.log(sock);
         return;
     }
     catch (e) {
-        console.error(e);
+        const message: string = e.message;
+        if (message.localeCompare('java.net.SocketTimeoutException') > 0) {
+            retMsg = { action: UdpWorkerActions.SOCKET_TIMEOUT_MESSAGE };
+            udpServer.close();
+            worker.postMessage(retMsg);
+            return;
+        }
+
+        if (udpServer) {
+            udpServer.close();
+        }
+
+        console.error(e.message);
+        retMsg = {
+            action: UdpWorkerActions.RETURN_ERROR_MESSAGE,
+            error: e.message
+        };
+        worker.postMessage(retMsg);
         return;
     }
 }

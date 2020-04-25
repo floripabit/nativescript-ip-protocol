@@ -22,7 +22,6 @@
     </StackLayout>
     <Button text="{{ 'Receive once at ' + port }}" (tap)="receiveOnce()"></Button>
     <Button text="{{ 'Start Receiving at ' + port }}" (tap)="startReceiving()"></Button>
-    <Button text="Stop Receiving" (tap)="stopReceiving()"></Button>
     <Button text="{{ 'Send Broadcast to 255.255.255.255:' + port }}" (tap)="sendBroadcast()"></Button>
     <Button text="{{ 'Send Unicast to ' + ip + ':' + port }}" (tap)="sendUnicast()"></Button>
     <StackLayout>

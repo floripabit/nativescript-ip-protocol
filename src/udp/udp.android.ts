@@ -4,64 +4,57 @@ declare const global, require;
 
 export class UdpProtocol extends UdpCommon {
     public udpServerSocket: java.net.DatagramSocket;
+    private worker: Worker;
 
     constructor() {
         super();
+        this.worker = this.getWorker();
     }
 
     private getWorker(): Worker {
         if (global["TNS_WEBPACK"]) {
-            const WorkerScript = require('nativescript-worker-loader!./android.worker.js');
+            const WorkerScript = require('nativescript-worker-loader!./workers/android.worker.js');
             return new WorkerScript();
         }
-        return new Worker('./android.worker.js');
+        return new Worker('./workers/android.worker.js');
     }
 
     public receiveOnce(port: number): Observable<string> {
         const subRet: Subject<string> = new Subject();
         let worker: Worker = this.getWorker();
 
-        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_ONCE_MESSAGE, port: port};
-        const obj: UdpProtocol = this;
+        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_ONCE_MESSAGE, port};
 
         worker.postMessage(data);
 
         worker.onmessage = function (msg) {
-            console.log(obj);
-            console.log(msg);
-            console.log(subRet);
-            UdpProtocol.processReceivedMessage(obj, msg.data, subRet);
+            UdpProtocol.processReceivedMessage(msg.data, subRet);
         };
 
         worker.onerror = function (err) {
-            subRet.error(err.error.toString());
+            subRet.error(err);
         };
         return subRet;
     }
 
-    public startReceive(port: number): Observable<string> {
+    public receiveWithTimeout(port: number, timeout: number): Observable<string> {
         const subRet: Subject<string> = new Subject();
         let worker: Worker = this.getWorker();
 
-        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_START_MESSAGE, port: port};
-        const obj: UdpProtocol = this;
+        const data: UdpParameters = {
+            action: UdpWorkerActions.RECEIVE_START_MESSAGE,
+            port, timeout
+        };
 
         worker.postMessage(data);
-
         worker.onmessage = function (msg) {
-            UdpProtocol.processReceivedMessage(obj, msg.data, subRet);
+            UdpProtocol.processReceivedMessage(msg.data, subRet);
         };
 
         worker.onerror = function (err) {
-            subRet.error(err.error.toString());
+            subRet.error(err);
         };
         return subRet;
-    }
-
-    public stopReceive(): void {
-        let worker: Worker = this.getWorker();
-        const data: UdpParameters = {action: UdpWorkerActions.RECEIVE_STOP_MESSAGE};
-        worker.postMessage(data);
     }
 
     public sendUnicast(address: string, port: number, msg: string): Observable<string> {
@@ -80,7 +73,7 @@ export class UdpProtocol extends UdpCommon {
         };
 
         worker.onerror = function (err) {
-            subRet.error(err.error.toString());
+            subRet.error(err);
         };
         return subRet;
     }
@@ -100,33 +93,35 @@ export class UdpProtocol extends UdpCommon {
         };
 
         worker.onerror = function (err) {
-            subRet.error(err.error.toString());
+            subRet.error(err);
         };
         return subRet;
     }
 
-    static processReceivedMessage(obj: UdpProtocol,
-                                  msg: UdpAndroidWorkerAnswer,
+    static processReceivedMessage(msg: UdpAndroidWorkerAnswer,
                                   subRet: Subject<string>) {
-        console.log(obj);
-        console.log(msg);
-        console.log(subRet);
         switch (msg.action) {
             case UdpWorkerActions.RETURN_DATA_MESSAGE:
                 subRet.next(msg.data);
                 break;
             case UdpWorkerActions.RETURN_SOCKET_MESSAGE:
-                obj.udpServerSocket = msg.socket;
+                subRet.next(UdpWorkerActions.RETURN_SOCKET_MESSAGE);
+                break;
+            case UdpWorkerActions.RETURN_ERROR_MESSAGE:
+                subRet.error(msg.error);
+                break;
+            case UdpWorkerActions.SOCKET_TIMEOUT_MESSAGE:
+                subRet.next(UdpWorkerActions.SOCKET_TIMEOUT_MESSAGE);
                 break;
             default:
-                console.error(`Not recognized action: ${msg.action}`);
+                console.error(`Not recognized action: ${msg}`);
                 break;
         }
         return;
     }
 }
 
-type UdpAndroidWorkerAnswer = |
+export type UdpAndroidWorkerAnswer = |
 {
     action: UdpWorkerActions.RETURN_SOCKET_MESSAGE;
     socket: java.net.DatagramSocket;
@@ -138,4 +133,7 @@ type UdpAndroidWorkerAnswer = |
 {
     action: UdpWorkerActions.RETURN_ERROR_MESSAGE;
     error: any;
+} |
+{
+    action: UdpWorkerActions.SOCKET_TIMEOUT_MESSAGE;
 };
