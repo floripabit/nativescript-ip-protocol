@@ -1,7 +1,7 @@
 {
 	"name": "nativescript-ip-protocol",
-	"version": "0.1.0",
-	"description": "Your awesome NativeScript plugin.",
+	"version": "0.2.0",
+	"description": "Plugin for basic socket IP communication.",
 	"main": "ip-protocol",
 	"typings": "index.d.ts",
 	"nativescript": {
@@ -38,13 +38,13 @@
 		"iOS"
 	],
 	"author": {
-		"name": "Your Name",
-		"email": "youremail@yourdomain.com"
+		"name": "FloripaBit",
+		"email": "contato@floripabit.com.br"
 	},
 	"bugs": {
 		"url": "https://github.com/FloripaBit/nativescript-ip-protocol/issues"
 	},
-	"license": "Apache-2.0",
+	"license": "MIT",
 	"homepage": "https://github.com/FloripaBit/nativescript-ip-protocol",
 	"devDependencies": {
 		"@nativescript/core": "^6.5.1",
