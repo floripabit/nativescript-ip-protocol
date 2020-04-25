@@ -6,6 +6,9 @@ export declare class UdpProtocol extends NSObject implements GCDAsyncUdpSocketDe
     private udpServerSubject;
     private udpClientSubject;
     private tag;
+    private udpServerSocket;
+    private timerId;
+    private timeout;
     constructor();
     udpSocketDidCloseWithError(sock: GCDAsyncUdpSocket, error: NSError): void;
     udpSocketDidConnectToAddress(sock: GCDAsyncUdpSocket, address: NSData): void;
@@ -13,7 +16,9 @@ export declare class UdpProtocol extends NSObject implements GCDAsyncUdpSocketDe
     udpSocketDidNotSendDataWithTagDueToError(sock: GCDAsyncUdpSocket, tag: number, error: NSError): void;
     udpSocketDidReceiveDataFromAddressWithFilterContext(sock: GCDAsyncUdpSocket, data: NSData, address: NSData, filterContext: any): void;
     udpSocketDidSendDataWithTag(sock: GCDAsyncUdpSocket, tag: number): void;
-    receive(port: number): Observable<string>;
+    receiveOnce(port: number): Observable<string>;
+    receiveWithTimeout(port: number, timeout: number): Observable<string>;
     sendUnicast(address: string, port: number, msg: string): Observable<string>;
     sendBroadcast(port: number, msg: string): Observable<string>;
+    private timeoutKillSocket;
 }
