@@ -1,32 +1,89 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, NgZone } from "@angular/core";
 import { UdpProtocol } from 'nativescript-ip-protocol';
 
-const defaultPort = 55000;
+const msgDefault = "This is a {N} test n.";
 
 @Component({
     selector: "Home",
     templateUrl: "./home.component.html"
 })
 export class HomeComponent implements OnInit {
+    public messageCount = 0;
+    public port = 55000;
+    public ip = "127.0.0.1";
+    public message = "This is a {N} test";
+    public receivedMessage;
+    public status;
 
-    constructor() {
+    constructor(private ngZone: NgZone) {
         // Use the component constructor to inject providers.
+        this.message = "This is a {N} test n." + this.messageCount;
+        this.status = "None";
     }
 
-    ngOnInit(): void {
+    public ngOnInit(): void {
+
+    }
+
+    public startReceiving() {
         const udpSocket: UdpProtocol = new UdpProtocol();
-        udpSocket.receive(defaultPort).subscribe((data) => {
-            console.log(JSON.parse(data));
+        this.status = "Opening to receive many...";
+        udpSocket.receiveWithTimeout(this.port, 5000)
+        .subscribe((msg) => {
+            this.status = "Received message";
+            this.cleanStatus();
+            this.ngZone.run(() => {
+                this.receivedMessage = msg;
+            })
+        }, (error) => {
+            console.error('Error at receiveOnce');
+            console.error(error);
         });
-        const sendJson = { 
-            Obj1: 'test1',
-            Obj2: 'test2',
-            Obj3: 'test3',
-            Obj4: 'test4',
-        }
-        setTimeout(() => {udpSocket.sendUnicast('127.0.0.1', defaultPort, JSON.stringify(sendJson))
-        .subscribe((ret) => {
-            console.log(ret);
-        })}, 1000);
+    }
+
+    public receiveOnce() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        this.status = "Opening to receive once...";
+        udpSocket.receiveOnce(Number(this.port))
+        .subscribe((msg) => {
+            this.status = "Received message";
+            this.cleanStatus();
+            this.ngZone.run(() => {
+                this.receivedMessage = msg;
+            })
+        }, (error) => {
+            console.error('Error at receiveOnce');
+            console.error(error);
+        });
+    }
+
+    public sendBroadcast() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        this.status = "Sending Broadcast...";
+        this.message = msgDefault + this.messageCount;
+        udpSocket.sendBroadcast(this.port, this.message)
+        .subscribe(() => {
+            this.status = "Broadcast message sent";
+            this.messageCount++;
+            this.cleanStatus(); 
+        });
+    }
+
+    public sendUnicast() {
+        const udpSocket: UdpProtocol = new UdpProtocol();
+        this.status = "Sending Unicast...";
+        this.message = msgDefault + this.messageCount;
+        udpSocket.sendUnicast(this.ip, this.port, this.message)
+        .subscribe(() => {
+            this.status = "Unicast message sent";
+            this.messageCount++;
+            this.cleanStatus();
+        });
+    }
+
+    private cleanStatus() {
+        setTimeout(() => {
+            this.status = "None";
+        },1500);
     }
 }
