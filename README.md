@@ -14,7 +14,7 @@ tns plugin add nativescript-ip-protocol
 
 You can see demo-angular in the repository, but basic usage can be seen below
 	
-	```typescript
+	```ts
     import { UdpProtocol } from 'nativescript-ip-protocol';
 
     public startReceiving() {
