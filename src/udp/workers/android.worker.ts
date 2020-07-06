@@ -177,13 +177,6 @@ function startReceiveWithTimeout(port: number, timeout: number): void {
         return;
     }
     catch (e) {
-        const message: string = e.message;
-        if (message.localeCompare('java.net.SocketTimeoutException') > 0) {
-            retMsg = { action: UdpWorkerActions.SOCKET_TIMEOUT_MESSAGE };
-            udpServer.close();
-            worker.postMessage(retMsg);
-            return;
-        }
 
         if (udpServer) {
             udpServer.close();
